@@ -1,0 +1,179 @@
+#!/usr/bin/env bash -
+#
+#   - simple picture array maker -
+#   Copyright (C) 2024  sumcodebit  -@github.com
+#
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+
+# default values which correspond to
+# ( tile corner border column row crop )
+defaults=( 200 0 10 3 3 0 )
+
+showHelp() {
+	cat <<EOH
+simple picture array maker
+Usage: $0 [-s VALUE] [-k VALUE] [-b VALUE] [-c VALUE] [-r VALUE] [-k] [-h] [DIRECTORY]
+  if DIRECTORY is omitted, the current one will be used
+  default values are in [...]
+
+  -s   maximum tilesize in px  [200]
+  -k   corner radius in px  [0]
+  -b   border around each tile in px  [10]
+        (equates to half the gap between each tile)
+  -c   amount of pictures in each column  [3]
+  -r   amount of pictures in each row  [3]
+  -t   crop / trim non-squared pictures  [no]
+  -h   show this help
+EOH
+}
+
+# parse commandline options
+while getopts ":s:k:b:c:r:th" option; do
+	case $option in
+		s)	_tilesize=$OPTARG ;;
+		k)	_cornersize=$OPTARG ;;
+		b)	_bordersize=$OPTARG ;;
+		c)	_columns=$OPTARG ;;
+		r)	_rows=$OPTARG ;;
+		t)	_crop=1 ;;
+		h)	showHelp ; exit 0 ;;
+		?)	>&2 printf '%s\n' "Usage: $0 [-skbcr VALUE] [-kh] [DIR]" \
+				"use '$0 -h' for more help"
+			exit 1 ;;
+	esac
+done
+
+echoErr() {
+	>&2 echo "$1"
+	exit 1
+}
+
+cleanUp() {				# resets shell environment into pre-execution state
+	[ -f "${outputdir}/mask.miff" ] && rm -f "${outputdir}/mask.miff" >/dev/null
+	$GLOBIGNORE=$old_GLOBIGNORE
+	(( set_nullglob )) && shopt -u nullglob
+	exit
+}
+
+testInt() {				# tests input for valid numbers
+	case "${1-}" in
+		*[^0-9]*)
+			echoErr "$0 : optional parameter is not an integer" ;;
+		*) : ;;
+	esac
+}
+
+#set default values, if unset
+for a in _tilesize _cornersize _bordersize _columns _rows _crop; do
+	testInt "${!a}"
+	: ${!a:=${defaults[${i=0}]}}
+	(( i++ ))
+done
+tilesum=$(( _columns * _rows ))
+unset -v i defaults
+
+# check if null globbing was set and set if not
+shopt -q nullglob; set_nullglob=$?
+(( set_nullglob )) && shopt -s nullglob
+
+trap cleanUp 1 2 3 6 15
+picdir=${@:$OPTIND}
+old_GLOBIGNORE=$GLOBIGNORE
+GLOBIGNORE=.*:*.html:*.md
+
+[ -z "$picdir" ] && picdir="$PWD"
+if [ $OPTIND -lt $# ]; then
+	echoErr "$0 : too many arguments"
+else
+	cd "$picdir" 2>/dev/null || echoErr "$0 : invalid directory \"$picdir\""
+	picarray=(*.*)
+	[ -z "$picarray" ] && echoErr "$0 : no pictures found in \"$picdir\""
+fi
+outputdir="output_${0##*/}_$(date '+%Y%m%d_%H%M%S')"
+mkdir "$outputdir" 2>/dev/null || echoErr "$0 : failed to create output directory"
+
+createMask() {			# creates a mask for all pictures
+	gm convert -size "${_tilesize}x${_tilesize}" \
+		xc:white \
+		-fill black \
+		-draw "roundRectangle 0,0 ${_tilesize},${_tilesize} ${_cornersize},${_cornersize}" \
+		"${outputdir}/mask.miff"
+}
+
+makeCrop() {
+	gm convert -resize "${_tilesize}x${_tilesize}^" \
+		"$pic" \
+		-gravity center \
+		-crop "${_tilesize}x${_tilesize}+0+0" \
+		miff:-
+}
+
+makeNoCrop() {
+	gm convert "$pic" \
+		-resize "${_tilesize}x${_tilesize}" \
+		-gravity center \
+		-background grey \
+		-extent "${_tilesize}x${_tilesize}" \
+		miff:-
+}
+
+makeMask() {
+	gm convert -compose Plus \
+		miff:- "${outputdir}/mask.miff" \
+		-flatten miff:-
+}
+
+makeMontageStd() {
+	gm montage -background white \
+		-tile "${_columns}x${_rows}" \
+		-geometry "+${_bordersize}+${_bordersize}" \
+		miff:- miff:-
+}
+
+makeMontageSimple() {
+	gm montage -background white \
+		-tile "${_columns}x${_rows}" \
+		-geometry "${_tilesize}x${_tilesize}+${_bordersize}+${_bordersize}" \
+		"${picarray[@]:${offset=0}:${tilesum}}" \
+		miff:-
+}
+
+makeOuterBorder() {
+	gm convert -bordercolor white \
+		-border "${_bordersize}x${_bordersize}" \
+		miff:- "${outputdir}/montage_${i}.png"
+}
+
+# creates a corner mask if needed
+[ $_cornersize -gt 0 ] && createMask
+
+#
+picsum=${#picarray[@]}
+outsum=$(( (picsum + tilesum - 1) / tilesum ))
+for i in $(seq -w 1 $outsum); do
+
+	if [[ $_cornersize -gt 0 ]] || [[ $_crop -eq 1 ]] ; then
+
+		for pic in "${picarray[@]:${offset=0}:${tilesum}}"; do
+			if [ $_crop -eq 1 ]; then
+				[ $_cornersize -gt 0 ] && makeCrop | makeMask || makeCrop
+			else
+				makeNoCrop | makeMask
+			fi
+		done | makeMontageStd | makeOuterBorder
+
+	else
+		makeMontageSimple | makeOuterBorder
+	fi
+	offset=$(( offset + tilesum ))
+done
+
+cleanUp
