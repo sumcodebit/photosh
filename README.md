@@ -30,6 +30,7 @@ Usage: $0 [-s VALUE] [-k VALUE] [-b VALUE] [-c VALUE] [-r VALUE] [-k] [-h] [DIRE
   -r   amount of pictures in each row  [3]
   -t   crop / trim non-squared pictures  [no]
   -h   show this help
+
 ´´´
 
 ### note:
