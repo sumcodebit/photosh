@@ -16,6 +16,8 @@ all command flags are optional, since default values have been implemented.
 
 ```sh
 $ ./photosh -h
+```
+```
 >
 simple picture array maker
 Usage: $0 [-s VALUE] [-k VALUE] [-b VALUE] [-c VALUE] [-r VALUE] [-k] [-h] [DIRECTORY]
