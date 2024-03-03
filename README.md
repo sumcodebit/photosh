@@ -15,6 +15,7 @@ run `./photosh <DIR>` or move it into a `$PATH` directory of your choice to run 
 all command flags are optional, since default values have been implemented.
 
 ´´´ sh
+
 $ ./photosh -h
 >
 simple picture array maker
