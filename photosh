@@ -89,7 +89,16 @@ picdir=${@:$OPTIND}
 old_GLOBIGNORE=$GLOBIGNORE
 GLOBIGNORE=.*:*.html:*.md
 
-[ -z "$picdir" ] && picdir="$PWD"
+if [ -z "$picdir" ]; then
+	picdir="$PWD"
+	echo "$0 : using current directory \"$picdir\""
+	read -N 1 -p "continue operation? [y/N]" ask
+	case $ask in
+		y|Y) echo ;;
+		*) echo; exit ;;
+	esac
+fi
+
 if [ $OPTIND -lt $# ]; then
 	echoErr "$0 : too many arguments"
 else
@@ -97,6 +106,7 @@ else
 	picarray=(*.*)
 	[ -z "$picarray" ] && echoErr "$0 : no pictures found in \"$picdir\""
 fi
+
 outputdir="output_${0##*/}_$(date '+%Y%m%d_%H%M%S')"
 mkdir "$outputdir" 2>/dev/null || echoErr "$0 : failed to create output directory"
 
