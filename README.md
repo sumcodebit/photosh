@@ -28,8 +28,8 @@ Usage: $0 [-s VALUE] [-k VALUE] [-b VALUE] [-c VALUE] [-r VALUE] [-k] [-h] [DIRE
   -k   corner radius in px  [0]
   -b   border around each tile in px  [10]
         (equates to half the gap between each tile)
-  -c   amount of pictures in each column  [3]
-  -r   amount of pictures in each row  [3]
+  -c   amount of pictures horizontally (columns)  [3]
+  -r   amount of pictures vertically (rows)  [3]
   -t   crop / trim non-squared pictures  [no]
   -h   show this help
 ```
