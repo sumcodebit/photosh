@@ -87,7 +87,7 @@ shopt -q nullglob; set_nullglob=$?
 trap cleanUp 1 2 3 6 15
 picdir=${@:$OPTIND}
 old_GLOBIGNORE=$GLOBIGNORE
-GLOBIGNORE=.*:*.html:*.md
+GLOBIGNORE=.*:*.html:*.md:*.ini
 
 if [ -z "$picdir" ]; then
 	picdir="$PWD"
