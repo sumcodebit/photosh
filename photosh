@@ -84,14 +84,15 @@ done
 tilesum=$(( _columns * _rows ))
 unset -v i defaults
 
-# check if null globbing was set and set if not
+# check if null globbing was set, to set after `trap`
 shopt -q nullglob; set_nullglob=$?
-(( set_nullglob )) && shopt -s nullglob
 
 picdirarray=( $(readlink -m ${@:$OPTIND} 2>/dev/null) )
 old_GLOBIGNORE=$GLOBIGNORE
+
 trap cleanUp 1 2 3 6 15
 GLOBIGNORE=.*:*.html:*.md:*.ini
+(( set_nullglob )) && shopt -s nullglob
 
 if [ -z "$picdirarray" ]; then
 	picdirarray=( "$PWD" )
