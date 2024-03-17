@@ -88,7 +88,7 @@ unset -v i defaults
 shopt -q nullglob; set_nullglob=$?
 (( set_nullglob )) && shopt -s nullglob
 
-picdirarray=( $(readlink -m ${@:$OPTIND}) )
+picdirarray=( $(readlink -m ${@:$OPTIND} 2>/dev/null) )
 old_GLOBIGNORE=$GLOBIGNORE
 trap cleanUp 1 2 3 6 15
 GLOBIGNORE=.*:*.html:*.md:*.ini
@@ -178,9 +178,6 @@ createOutput() {
 		offset=$(( offset + tilesum ))
 	done
 }
-
-# creates a corner mask if needed
-
 
 # iterate through every given directory
 for picdir in "${picdirarray[@]}"; do
