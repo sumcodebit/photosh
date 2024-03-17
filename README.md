@@ -20,7 +20,7 @@ $ ./photosh -h
 ```
 >
 simple picture array maker
-Usage: ./photosh [-s VALUE] [-k VALUE] [-b VALUE] [-c VALUE] [-r VALUE] [-k] [-h] [DIRECTORY]
+Usage: ./photosh [-s VALUE] [-k VALUE] [-b VALUE] [-c VALUE] [-r VALUE] [-t] [-h] [DIRECTORY]
   if DIRECTORY is omitted, the current one will be used
   default values are in [...]
 

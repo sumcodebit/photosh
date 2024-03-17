@@ -21,7 +21,7 @@ _self="$0"
 showHelp() {
 	cat <<EOH
 simple picture array maker
-Usage: $_self [-s VALUE] [-k VALUE] [-b VALUE] [-c VALUE] [-r VALUE] [-k] [-h] [DIRECTORY]
+Usage: $_self [-s VALUE] [-k VALUE] [-b VALUE] [-c VALUE] [-r VALUE] [-t] [-h] [DIRECTORY]
   if DIRECTORY is omitted, the current one will be used
   default values are in [...]
 
@@ -46,7 +46,7 @@ while getopts ":s:k:b:c:r:th" option; do
 		r)	_rows=$OPTARG ;;
 		t)	_crop=1 ;;
 		h)	showHelp ; exit 0 ;;
-		?)	>&2 printf '%s\n' "Usage: $_self [-skbcr VALUE] [-kh] [DIR]" \
+		?)	>&2 printf '%s\n' "Usage: $_self [-skbcr VALUE] [-th] [DIR]" \
 				"use '$_self -h' for more help"
 			exit 1 ;;
 	esac
