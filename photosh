@@ -16,21 +16,22 @@
 # default values which correspond to
 # ( tile corner border column row crop )
 defaults=( 200 0 10 3 3 0 )
+_self="$0"
 
 showHelp() {
 	cat <<EOH
 simple picture array maker
-Usage: $0 [-s VALUE] [-k VALUE] [-b VALUE] [-c VALUE] [-r VALUE] [-k] [-h] [DIRECTORY]
+Usage: $_self [-s VALUE] [-k VALUE] [-b VALUE] [-c VALUE] [-r VALUE] [-k] [-h] [DIRECTORY]
   if DIRECTORY is omitted, the current one will be used
   default values are in [...]
 
-  -s   maximum tilesize in px  [200]
-  -k   corner radius in px  [0]
-  -b   border around each tile in px  [10]
+  -s   maximum tilesize in px  [${defaults[0]}]
+  -k   corner radius in px  [${defaults[1]}]
+  -b   border around each tile in px  [${defaults[2]}]
         (equates to half the gap between each tile)
-  -c   amount of pictures horizontally (columns)  [3]
-  -r   amount of pictures vertically (rows)  [3]
-  -t   crop / trim non-squared pictures  [no]
+  -c   amount of pictures horizontally (columns)  [${defaults[3]}]
+  -r   amount of pictures vertically (rows)  [${defaults[4]}]
+  -t   crop / trim non-squared pictures  [$( ((defaults[5])) && echo "yes" || echo "no" )]
   -h   show this help
 EOH
 }
@@ -45,28 +46,31 @@ while getopts ":s:k:b:c:r:th" option; do
 		r)	_rows=$OPTARG ;;
 		t)	_crop=1 ;;
 		h)	showHelp ; exit 0 ;;
-		?)	>&2 printf '%s\n' "Usage: $0 [-skbcr VALUE] [-kh] [DIR]" \
-				"use '$0 -h' for more help"
+		?)	>&2 printf '%s\n' "Usage: $_self [-skbcr VALUE] [-kh] [DIR]" \
+				"use '$_self -h' for more help"
 			exit 1 ;;
 	esac
 done
 
 echoErr() {
 	>&2 echo "$1"
+	[ -n "$2" ] && cleanUp 1
 	exit 1
 }
 
-cleanUp() {				# resets shell environment into pre-execution state
+cleanUp() {
+# resets shell environment into pre-execution state
 	[ -f "${outputdir}/mask.miff" ] && rm -f "${outputdir}/mask.miff" >/dev/null
 	$GLOBIGNORE=$old_GLOBIGNORE
 	(( set_nullglob )) && shopt -u nullglob
-	exit
+	[ "$1" == "1" ] && exit 1 || exit
 }
 
-testInt() {				# tests input for valid numbers
+testInt() {
+# tests input for valid numbers
 	case "${1-}" in
 		*[^0-9]*)
-			echoErr "$0 : optional parameter is not an integer" ;;
+			echoErr "$_self : optional parameter is not an integer" ;;
 		*) : ;;
 	esac
 }
@@ -84,14 +88,14 @@ unset -v i defaults
 shopt -q nullglob; set_nullglob=$?
 (( set_nullglob )) && shopt -s nullglob
 
-trap cleanUp 1 2 3 6 15
-picdir=${@:$OPTIND}
+picdirarray=( $(readlink -m ${@:$OPTIND}) )
 old_GLOBIGNORE=$GLOBIGNORE
+trap cleanUp 1 2 3 6 15
 GLOBIGNORE=.*:*.html:*.md:*.ini
 
-if [ -z "$picdir" ]; then
-	picdir="$PWD"
-	echo "$0 : using current directory \"$picdir\""
+if [ -z "$picdirarray" ]; then
+	picdirarray=( "$PWD" )
+	echo "$_self : using current directory \"${picdirarray[0]}\""
 	read -N 1 -p "continue operation? [y/N]" ask
 	case $ask in
 		y|Y) echo ;;
@@ -99,18 +103,8 @@ if [ -z "$picdir" ]; then
 	esac
 fi
 
-if [ $OPTIND -lt $# ]; then
-	echoErr "$0 : too many arguments"
-else
-	cd "$picdir" 2>/dev/null || echoErr "$0 : invalid directory \"$picdir\""
-	picarray=(*.*)
-	[ -z "$picarray" ] && echoErr "$0 : no pictures found in \"$picdir\""
-fi
-
-outputdir="output_${0##*/}_$(date '+%Y%m%d_%H%M%S')"
-mkdir "$outputdir" 2>/dev/null || echoErr "$0 : failed to create output directory"
-
-createMask() {			# creates a mask for all pictures
+createMask() {
+# creates a mask for all pictures
 	gm convert -size "${_tilesize}x${_tilesize}" \
 		xc:white \
 		-fill black \
@@ -152,7 +146,7 @@ makeMontageSimple() {
 	gm montage -background white \
 		-tile "${_columns}x${_rows}" \
 		-geometry "${_tilesize}x${_tilesize}+${_bordersize}+${_bordersize}" \
-		"${picarray[@]:${offset=0}:${tilesum}}" \
+		"${picarray[@]:${offset}:${tilesum}}" \
 		miff:-
 }
 
@@ -162,28 +156,50 @@ makeOuterBorder() {
 		miff:- "${outputdir}/montage_${i}.png"
 }
 
+createOutput() {
+	picsum=${#picarray[@]}
+	outsum=$(( (picsum + tilesum - 1) / tilesum ))
+	offset=0
+	for i in $(seq -w 1 $outsum); do
+
+		if [[ $_cornersize -gt 0 ]] || [[ $_crop -eq 1 ]] ; then
+
+			for pic in "${picarray[@]:${offset}:${tilesum}}"; do
+				if [ $_crop -eq 1 ]; then
+					[ $_cornersize -gt 0 ] && makeCrop | makeMask || makeCrop
+				else
+					makeNoCrop | makeMask
+				fi
+			done | makeMontageStd | makeOuterBorder
+
+		else
+			makeMontageSimple | makeOuterBorder
+		fi
+		offset=$(( offset + tilesum ))
+	done
+}
+
 # creates a corner mask if needed
-[ $_cornersize -gt 0 ] && createMask
 
-#
-picsum=${#picarray[@]}
-outsum=$(( (picsum + tilesum - 1) / tilesum ))
-for i in $(seq -w 1 $outsum); do
 
-	if [[ $_cornersize -gt 0 ]] || [[ $_crop -eq 1 ]] ; then
+# iterate through every given directory
+for picdir in "${picdirarray[@]}"; do
+	cd "$picdir" 2>/dev/null || \
+		echoErr "$_self : invalid directory \"$picdir\"" clean
 
-		for pic in "${picarray[@]:${offset=0}:${tilesum}}"; do
-			if [ $_crop -eq 1 ]; then
-				[ $_cornersize -gt 0 ] && makeCrop | makeMask || makeCrop
-			else
-				makeNoCrop | makeMask
-			fi
-		done | makeMontageStd | makeOuterBorder
+	picarray=(*.*)
+	[ -z "$picarray" ] && \
+		echoErr "$_self : no pictures found in \"$picdir\"" clean
 
-	else
-		makeMontageSimple | makeOuterBorder
-	fi
-	offset=$(( offset + tilesum ))
+	outputdir="output_${_self##*/}_$(date '+%Y%m%d_%H%M%S')"
+	mkdir "$outputdir" 2>/dev/null || \
+		echoErr "$_self : failed to create output directory" clean
+
+	[ $_cornersize -gt 0 ] && createMask
+	echo "$_self : working on directory \"$picdir\""
+
+	createOutput
+	rm -f "${outputdir}/mask.miff" >/dev/null
 done
 
 cleanUp

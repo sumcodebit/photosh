@@ -20,7 +20,7 @@ $ ./photosh -h
 ```
 >
 simple picture array maker
-Usage: $0 [-s VALUE] [-k VALUE] [-b VALUE] [-c VALUE] [-r VALUE] [-k] [-h] [DIRECTORY]
+Usage: ./photosh [-s VALUE] [-k VALUE] [-b VALUE] [-c VALUE] [-r VALUE] [-k] [-h] [DIRECTORY]
   if DIRECTORY is omitted, the current one will be used
   default values are in [...]
 
@@ -42,6 +42,6 @@ since Graphics Magick supports a wide array of image formats, there are no other
 
 ## todo
 
-- [ ] add support for multiple directories
+- [x] add support for multiple directories
 - [ ] choose different background colors
 - [ ] add easy html UI for previewing and generating the corresponding commandline
