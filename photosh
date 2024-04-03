@@ -182,15 +182,15 @@ createOutput() {
 
 # iterate through every given directory
 for picdir in "${picdirarray[@]}"; do
-	cd "$picdir" 2>/dev/null || \
+	cd "$picdir" 2>/dev/null ||
 		echoErr "$_self : invalid directory \"$picdir\"" clean
 
 	picarray=(*.*)
-	[ -z "$picarray" ] && \
+	[ -z "$picarray" ] &&
 		echoErr "$_self : no pictures found in \"$picdir\"" clean
 
 	outputdir="output_${_self##*/}_$(date '+%Y%m%d_%H%M%S')"
-	mkdir "$outputdir" 2>/dev/null || \
+	mkdir "$outputdir" 2>/dev/null ||
 		echoErr "$_self : failed to create output directory" clean
 
 	[ $_cornersize -gt 0 ] && createMask
