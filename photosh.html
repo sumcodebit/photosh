@@ -538,10 +538,10 @@ function OnDrag(event) {
 }
 // listener for loading images
 document.getElementById('imageInput').addEventListener('change', function(event) {
-    const files = event.target.files;
-    const imageContainer = document.getElementById('imageContainer');
-    // clear previous images
-    imageContainer.innerHTML = '';
+	const files = event.target.files;
+	const imageContainer = document.getElementById('imageContainer');
+	// clear previous images
+	imageContainer.innerHTML = '';
 	// apply outer border
 	imageContainer.style.padding = valueBorder + 'px';
 	// calculate image size, maximum amount of images and buffer images
@@ -550,14 +550,14 @@ document.getElementById('imageInput').addEventListener('change', function(event)
 	const filesToProcess = Math.min(files.length, Math.max(maxImages * 2, maxImages + 10));
 	const filesToShow = Math.min(files.length, maxImages);
 
-    for (let i = 0; i < filesToProcess; i++) {
-        const file = files[i];
-        const reader = new FileReader();
+	for (let i = 0; i < filesToProcess; i++) {
+		const file = files[i];
+		const reader = new FileReader();
 
 		// creates, formats and appends images
-        reader.onload = function(e) {
-            const image = document.createElement('img');
-            image.src = e.target.result;
+		reader.onload = function(e) {
+			const image = document.createElement('img');
+			image.src = e.target.result;
 
 			image.style.height = newImageSize + 'px';
 			image.style.width = newImageSize + 'px';
@@ -567,9 +567,9 @@ document.getElementById('imageInput').addEventListener('change', function(event)
 			image.style.display = (filesToShow > i) ? 'unset' : 'none';
 
 			imageContainer.appendChild(image);
-        };
-        reader.readAsDataURL(file);
-    }
+		};
+		reader.readAsDataURL(file);
+	}
 	imagesLoaded = true;
 	// hide help overlay
 	document.getElementById('helpToggleBox').classList.add('hidden');
