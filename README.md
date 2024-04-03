@@ -6,7 +6,7 @@ it supports an adjustable gap between pictures, layout and rounded corners.
 ## dependencies
 
 - bash
-- Graphics Magick
+- GraphicsMagick
 
 ## usage
 
@@ -34,14 +34,19 @@ Usage: ./photosh [-s VALUE] [-k VALUE] [-b VALUE] [-c VALUE] [-r VALUE] [-t] [-h
   -h   show this help
 ```
 
+with the added html UI you can locally preview all options.
+
+it also generates a commandline output accordingly to paste it into a terminal.
+
 ### note:
 
-make sure that your input directory consists *only* images.
+make sure that your input directory includes *only* images.
 dot-files, html, markdown and files w/o filetype extension are excluded: `.*`, `*.md`,`*.html` and `!*.*`
 since Graphics Magick supports a wide array of image formats, there are no other exclusion of filetypes hardcoded.
+
 
 ## todo
 
 - [x] add support for multiple directories
 - [ ] choose different background colors
-- [ ] add easy html UI for previewing and generating the corresponding commandline
+- [x] add simple html UI for previewing and generating the corresponding commandline

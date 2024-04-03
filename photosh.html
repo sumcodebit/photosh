@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<!--
+#  this file is part of: photosh
+#  - simple picture array maker -
+#  Copyright (C) 2024  sumcodebit  -@github.com
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+-->
+<html>
+<style>
+	:root{
+		--general-background-color: #232122;
+		--side-column-color: #313435;
+		--image-column-color: #889092;
+		--selection-color: gold;
+		--header-color: #b95f08;
+		--header-hover-color: hsla(0, 0%, 100%, .15);
+		--help-background-color: #f5eedb;
+		--text-color: #ffffff;
+		--montage-background-color: #ffffff;
+		--image-background-color: #d3d3d3;
+		--border-size: 11px;
+	}
+	* {
+		box-sizing:border-box;
+	}
+	body {
+		/* disable scroll and text selection */
+		overflow: hidden;
+		-webkit-touch-callout: none;/* iOS Safari */
+		-webkit-user-select: none; 	/* Safari */
+		-khtml-user-select: none; 	/* Konqueror HTML */
+		-moz-user-select: none; 	/* Firefox */
+		-ms-user-select: none; 		/* Internet Explorer/Edge */
+		user-select: none; 			/* Non-prefixed version, currently
+									  supported by Chrome and Opera */
+		font-family: Helvetica, Veranda, Arial, sans-serif;
+		font-size: 18px;
+		margin: var(--border-size);
+		background-color: var(--general-background-color);
+	}
+	p{
+		margin: .8rem 0;
+	}
+	h2 {
+		text-align: center;
+	}
+	hr {
+		margin: 1em 0;
+	}
+	.text {
+		color: var(--text-color);
+	}
+	.center {
+		text-align: center;
+	}
+	.hidden {
+		display: none;
+		height: 0;
+		width: 0;
+	}
+	.roundCorner {
+		overflow: inherit;
+		border-radius: var(--border-size);
+	}
+	.noScrollBar {
+		-ms-overflow-style: none;	/* IE and Edge */
+		scrollbar-width: none;		/* Firefox */
+	}
+	.noScrollBar::-webkit-scrollbar {
+		display: none;				/* Chrome, Safari and Opera */
+	}
+	#pageGrid {
+		height: 100%;
+		background-color: var(--general-background-color);
+		display: grid;
+		grid-template-areas:
+			'header header header header header'
+			'leftcol leftdrag picturearea rightdrag rightcol';
+		grid-template-rows: 3rem calc(100vh - 3rem - 2 * var(--border-size));
+		grid-template-columns: 2fr var(--border-size) 6fr var(--border-size) 2fr;
+		gap: 0px;
+	}
+	#header {
+		background-color: var(--header-color);
+		grid-area: header;
+	}
+	.headerCenter {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.headerElem, .headerInput {
+		float: left;
+		position: relative;
+		height: 100%;
+		width: 12%;
+		text-align: center;
+	}
+	.headerHidden {
+		display: none;
+		position: absolute;
+		top: 0;
+		right: 0;
+		width: 100%;
+		height: 100%;
+		background: var(--header-hover-color);
+		opacity: 100%;
+	}
+	.headerHidden > p > input[type="range"] {
+		width: 70%;
+		height: 5px;
+		appearance: none;
+		background: var(--general-background-color);
+		border-radius: 5px;
+	}
+	.headerHidden > p > input[type="checkbox"] {
+		width: 25px;
+		height: 25px;
+	}
+	.headerElem:hover > .headerHidden {
+		display: unset;
+	}
+	.headerElem:hover > p {
+		color: var(--header-color);
+	}
+	#outputCommand {
+		display: none;
+		font-family: monospace, monospace;
+		font-size: 16px;
+	}
+	#outputCommand:hover {
+		color: var(--general-background-color);
+		cursor: text;
+	}
+	#outputCommand > p {
+		-webkit-touch-callout: text;
+		-webkit-user-select: text;
+		-khtml-user-select: text;
+		-moz-user-select: text;
+		-ms-user-select: text;
+		user-select: text;
+		white-space: nowrap;
+	}
+	#outputCommand > p::selection {
+		color: var(--selection-color);
+		background-color: var(--header-hover-color);
+	}
+	.headerInput:hover {
+	}
+	#imageInput + label {
+		background-color: var(--header-color);
+		padding: .3rem .5rem .4rem .5rem;
+		border: 1px solid var(--text-color);
+		border-radius: .3rem;
+		cursor: pointer;
+	}
+	#imageInput + label:hover {
+		border-color: var(--general-background-color);
+		background-color: var(--header-hover-color);
+		color: var(--general-background-color);
+	}
+	.sideColumn {
+		display: flex;
+		align-items: center;
+		background-color: var(--side-column-color);
+		color: var(--side-column-color);
+		overflow: auto;
+	}
+	.sideColumn:hover {
+		color: var(--text-color);
+	}
+	#leftDragBar {
+		grid-area: leftdrag;
+	}
+	#rightDragBar {
+		grid-area: rightdrag;
+	}
+	.dragBar {
+		background-color: var(--general-background-color);
+		cursor: ew-resize;
+	}
+	.dragBar:hover {
+		background-color: var(--header-color);
+	}
+	#leftColumn {
+		grid-area: leftcol;
+		justify-content: right;
+	}
+	#rightColumn {
+		grid-area: rightcol;
+		justify-content: left;
+	}
+	#imageContainerOuter {
+		background-color: var(--image-column-color);
+		grid-area: picturearea;
+		overflow-y: scroll;
+		overflow-x: hidden;
+		padding: 5px 0 0 0;
+	}
+	.imageContainerElem {
+		padding: 20px 0 0 0;
+	}
+	.imageContainerElem p {
+		margin: .4rem;
+	}
+	#helpToggleBox {
+		background-color: var(--general-background-color);
+		position: fixed;
+		padding: 30px;
+		top: 100px;
+		left: 50%;
+		height: 85vh;
+		min-width: 70%;
+		transform: translate(-50%, 0);
+		opacity: 90%;
+		border-radius: 2rem;
+	}
+	#helpToggleBox > div {
+		background-color: var(--help-background-color);
+		color: var(--general-background-color);
+		height: 100%;
+		width: 100%;
+		padding: 20px;
+		border-radius: 1rem;
+	}
+	.helpInner {
+		max-width: 33rem;
+		margin: .5rem auto;
+		font-size: .9em;
+		overflow-y: scroll;
+		overflow-x: hidden;
+		height: inherit;
+	}
+	.helpInner > :not(hr) {
+		margin: 0 2rem;
+	}
+	.helpInner > p {
+		margin: .5rem 2rem;
+	}
+	li p {
+		margin: .5rem 2rem .5rem 0;
+	}
+	#helpSelect {
+		width: 4rem;
+		padding: 1px;
+		margin: auto;
+	}
+	#helpSelect:hover {
+		cursor: pointer;
+		background: var(--header-hover-color);
+	}
+	#helpSelect:hover > p {
+		color: var(--general-background-color);
+	}
+	#imageContainer {
+		background-color: var(--montage-background-color);
+		overflow: inherit;
+		text-align: left;
+		padding: 0px;	/* starting value changes after loading pictures */
+		font-size: 0px;
+	}
+	img {
+		background-color: var(--image-background-color);
+		margin: 10px;
+		border-radius: 30px;
+		height: 200px;
+		width: 200px;
+	}
+</style>
+<head>
+	<title>Photo Array Maker</title>
+</head>
+<body>
+	<div class="roundCorner">
+	<div id="pageGrid" onmouseup="EndDrag()" onmousemove="OnDrag(event)">
+		<div class="text headerCenter" id="header">
+			<div class="headerElem headerCenter">
+				<p>border</p>
+				<div class="headerHidden">
+					<p><input type="range" id="editBorder" min="0" max="50" value="10" oninput="UpdateValue(this, true)"></p>
+				</div>
+			</div>
+			<div class="headerElem headerCenter">
+				<p>corner</p>
+				<div class="headerHidden">
+					<p><input type="range" id="editCorner" min="0" max="200" value="40" oninput="UpdateValue(this, true)"></p>
+				</div>
+			</div>
+			<div class="headerElem headerCenter">
+				<p>columns</p>
+				<div class="headerHidden">
+					<p><input type="range" id="editColumn" min="1" max="10" value="3" oninput="UpdateValue(this, true)"></p>
+				</div>
+			</div>
+			<div class="headerElem headerCenter">
+				<p>rows</p>
+				<div class="headerHidden">
+					<p><input type="range" id="editRow" min="1" max="10" value="3" oninput="UpdateValue(this, true)"></p>
+				</div>
+			</div>
+			<div class="headerElem headerCenter">
+				<p>cut</p>
+				<div class="headerHidden">
+					<p><input class="checkBoxInput" type="checkbox" id="editCut" name="checkBoxCut" oninput="UpdateValue(this, true)"></p>
+				</div>
+			</div>
+			<div class="headerInput headerCenter">
+				<input type="file" id="imageInput" accept="image/*" multiple hidden>
+				<label for="imageInput">select files</label>
+			</div>
+		</div>
+		<div class="sideColumn" id="leftColumn">
+			<div>
+				<p>Drag to move <b>&gt;</b></p>
+			</div>
+		</div>
+		<div class="dragBar" id="leftDragBar" onmousedown="StartLeftDrag()"></div>
+		<div class="text noScrollBar" id="imageContainerOuter">
+			<div class="" id="helpToggleBox" onclick="ToggleHelp(this)">
+				<div>
+					<div class="helpInner noScrollBar">
+						<h2>- photosh -</h1>
+						<hr>
+						<p>a quick previewer for <b>photosh</b> - the simple picture array maker script, which outputs montages of images for each given directory.</p>
+						<p>here you can easily play around with all possible options and preview the desired output.</p>
+						<p>this viewer is not intended for mobile use.</p>
+						<br>
+						<p>steps to consider:</p>
+						<ul>
+							<li><p>load images via the file selector</p></li>
+							<li><p>hover over the options you want change</p></li>
+							<li><p>change corresponding slider/checkbox</p></li>
+							<li><p>mark and copy generated commandline</p></li>
+							<li><p>start terminal and paste commandline expression</p></li>
+							<li><p>occasionally load more images if amount doesn't fit the settings</p></li>
+						</ul>
+						<br>
+						<hr>
+					</div>
+				</div>
+			</div>
+			<div class="imageContainerElem center" id="outputCommand" title="mark text and copy command">
+				<p></p>
+			</div>
+			<div class="imageContainerElem">
+				<div id="imageContainer"></div>
+			</div>
+			<div class="imageContainerElem center">
+				<div id="helpSelect" class="hidden" onclick="ToggleHelp(this)">
+					<p>help</p>
+				</div>
+			</div>
+		</div>
+		<div class="dragBar" id="rightDragBar" onmousedown="StartRightDrag()"></div>
+		<div class="sideColumn" id="rightColumn">
+			<div>
+				<p><b>&lt;</b> Drag to move</p>
+			</div>
+		</div>
+	</div>
+	</div>
+</body>
+<script type="text/javascript">
+// global variables
+let valueBorder;
+let valueCorner;
+let valueColumn;
+let valueRow;
+let valueCut;
+let valueContainerOuter;
+let newImageSize;
+let maxImages;
+let imagesLoaded = false;
+let isLeftDragging = false;
+let isRightDragging = false;
+
+// calculates new image size,
+// removes a tiny fraction due to upcount errors by imprecise calculations
+const calcImgSize = () => (valueContainerOuter - (2*valueColumn + 2) * valueBorder) / valueColumn - 0.002*valueColumn;
+
+// construction of commandline output
+const CompoundCmdLine = (s,b,k,c,r,t) => {
+	t = t ? ' -t' : '';
+	s = Math.round(s);
+	return `./photosh -s ${s} -b ${b} -k ${k} -c ${c} -r ${r}${t}`;
+}
+// updates commandline output
+function UpdateCmdLine() {
+	if (! imagesLoaded) { return; }
+	cmdOutput = document.getElementById('outputCommand').children[0];
+	cmdOutput.textContent = CompoundCmdLine(newImageSize, valueBorder, valueCorner, valueColumn, valueRow, valueCut);
+}
+// toggle for help box
+function ToggleHelp(sourceClick) {
+	const sourceId = sourceClick.id;
+
+	if (sourceId == 'helpSelect') {
+		document.getElementById('helpToggleBox').classList.remove('hidden');
+
+	} else if (sourceId == 'helpToggleBox') {
+		document.getElementById('helpSelect').classList.remove('hidden');
+	}
+
+	sourceClick.classList.add('hidden');
+}
+// retrieves initial values after .onload
+window.onload = function() {
+	const headerOptions = document.getElementById('header').children;
+	const pageGrid = document.getElementById('pageGrid');
+	const pageGridValues = getComputedStyle(pageGrid).getPropertyValue('grid-template-columns').split(' ');
+
+	valueContainerOuter = parseFloat(pageGridValues[2].match(/\d+\.?\d*/)[0], 10);
+
+	for (let i = 0; i < headerOptions.length - 1; i++) {
+			UpdateValue(headerOptions[i].children[1].children[0].lastChild, false);
+	}
+}
+// updates corresponding values when header options change or during .onload
+function UpdateValue(source, more = false) {
+	const sourceId = source.id;
+
+	switch (true) {
+		case sourceId == 'editBorder':
+			valueBorder = parseInt(source.value, 10);
+			break;
+
+		case sourceId == 'editCorner':
+			valueCorner = parseInt(source.value, 10);
+			break;
+
+		case sourceId == 'editColumn':
+			valueColumn = parseInt(source.value, 10);
+			break;
+
+		case sourceId == 'editRow':
+			valueRow = parseInt(source.value, 10);
+			break;
+
+		case sourceId == 'editCut':
+			valueCut = source.checked;
+			break;
+
+		default:
+			break;
+	}
+	(more && imagesLoaded) ? UpdateImage(sourceId) : false;
+	UpdateCmdLine();
+}
+// update images one by one
+function UpdateImage(sourceId) {
+	const imageElements = document.getElementsByTagName('img');
+
+	if (sourceId == 'editBorder') {
+		document.getElementById('imageContainer').style.padding = valueBorder + 'px';
+	}
+	if (['editBorder','editColumn','editRow','editDrag'].includes(sourceId)) {
+		newImageSize = calcImgSize();
+	}
+	if (['editColumn','editRow'].includes(sourceId)) {
+		maxImages = valueColumn * valueRow;
+	}
+	for (let i = 0; i < imageElements.length; i++) {
+		const image = imageElements[i];
+
+		if (sourceId == 'editBorder') { image.style.margin = valueBorder + 'px'; }
+		if (['editColumn','editRow'].includes(sourceId)) {
+			image.style.display = (i >= maxImages) ? 'none' : 'unset';
+		}
+		switch (true) {
+			case sourceId == 'editBorder':
+			case sourceId == 'editColumn':
+			case sourceId == 'editRow':
+			case sourceId == 'editDrag':
+				image.style.height = newImageSize + 'px';
+				image.style.width = newImageSize + 'px';
+				break;
+
+			case sourceId == 'editCorner':
+				image.style.borderRadius = valueCorner + 'px';
+				break;
+
+			case sourceId == 'editCut':
+				image.style.objectFit = valueCut ? 'cover' : 'contain';
+				break;
+
+			default:
+				break;
+		}
+	}
+}
+// functions for side drag colums
+function StartLeftDrag() {
+	isLeftDragging = true;
+}
+function StartRightDrag() {
+	isRightDragging = true;
+}
+function EndDrag() {
+	isLeftDragging = false;
+	isRightDragging = false;
+}
+function OnDrag(event) {
+	if (isLeftDragging || isRightDragging) {
+		const dragBarSize = 11;
+		const pageGrid = document.getElementById('pageGrid');
+		let leftColWidth, rightColWidth;
+
+		if (isLeftDragging) {
+			leftColWidth = event.clientX - 3/2*dragBarSize;
+			rightColWidth = leftColWidth;
+		} else if (isRightDragging) {
+			rightColWidth = pageGrid.clientWidth - event.clientX + 1/2*dragBarSize;
+			leftColWidth = rightColWidth;
+		}
+		const gridColumnsArray = [
+			leftColWidth,
+			dragBarSize,
+			pageGrid.clientWidth - 2*dragBarSize - leftColWidth - rightColWidth,
+			dragBarSize,
+			rightColWidth
+		];
+		const newGridColumns = gridColumnsArray.map(element => element + 'px').join(' ');
+		pageGrid.style.gridTemplateColumns = newGridColumns;
+		valueContainerOuter = gridColumnsArray[2];
+
+		UpdateImage('editDrag');
+		UpdateCmdLine();
+	}
+}
+// listener for loading images
+document.getElementById('imageInput').addEventListener('change', function(event) {
+    const files = event.target.files;
+    const imageContainer = document.getElementById('imageContainer');
+    // clear previous images
+    imageContainer.innerHTML = '';
+	// apply outer border
+	imageContainer.style.padding = valueBorder + 'px';
+	// calculate image size, maximum amount of images and buffer images
+	newImageSize = calcImgSize();
+	maxImages = valueColumn * valueRow;
+	const filesToProcess = Math.min(files.length, Math.max(maxImages * 2, maxImages + 10));
+	const filesToShow = Math.min(files.length, maxImages);
+
+    for (let i = 0; i < filesToProcess; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+
+		// creates, formats and appends images
+        reader.onload = function(e) {
+            const image = document.createElement('img');
+            image.src = e.target.result;
+
+			image.style.height = newImageSize + 'px';
+			image.style.width = newImageSize + 'px';
+			image.style.margin = valueBorder + 'px';
+			image.style.borderRadius = valueCorner + 'px';
+			image.style.objectFit = valueCut ? 'cover' : 'contain';
+			image.style.display = (filesToShow > i) ? 'unset' : 'none';
+
+			imageContainer.appendChild(image);
+        };
+        reader.readAsDataURL(file);
+    }
+	imagesLoaded = true;
+	// hide help overlay
+	document.getElementById('helpToggleBox').classList.add('hidden');
+	document.getElementById('helpSelect').classList.remove('hidden');
+	// unhide and update commandline container
+	document.getElementById('outputCommand').style.display = 'block';
+	UpdateCmdLine();
+});
+</script>
+</html>
