@@ -125,7 +125,7 @@ makeNoCrop() {
 	gm convert "$pic" \
 		-resize "${_tilesize}x${_tilesize}" \
 		-gravity center \
-		-background grey \
+		-background "#d3d3d3" \
 		-extent "${_tilesize}x${_tilesize}" \
 		miff:-
 }
